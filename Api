@@ -1,16 +1,9 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { email, image } = req.body;
-
-  if (image) {
-    // Real Grok API call here (replace with your key)
-    // For demo: Mock response
-    const meals = [{ name: 'AI Salad', prepTime: '10 min', calories: 400, protein: 20, carbs: 30, fat: 15, ingredients: ['Lettuce'], steps: ['Mix'] }];
-    return res.json({ meals });
-  }
+  const { email } = req.body;
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -25,4 +18,4 @@ module.exports = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-};
+}
