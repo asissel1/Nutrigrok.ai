@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>NutriGrok AI - Personalized Nutrition Coach</title>
+  <title>NutriGrok AI – Fridge to Meal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', sans-serif; }
-    .meal-card { transition: transform 0.2s; }
+    .meal-card { transition: transform .2s; }
     .meal-card:hover { transform: translateY(-4px); }
   </style>
 </head>
@@ -18,27 +18,26 @@
     <!-- Header -->
     <header class="text-center mb-10">
       <h1 class="text-4xl font-bold text-green-600 mb-2">NutriGrok AI</h1>
-      <p class="text-lg text-gray-600">Snap your fridge. Get meals. Eat better.</p>
+      <p class="text-lg text-gray-600">Snap your fridge → get 3 healthy meals instantly</p>
       <div id="premium-badge" class="inline-block mt-4"></div>
     </header>
 
-    <!-- Upload Section -->
+    <!-- Upload -->
     <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-      <div class="text-center">
-        <input type="file" id="fridgePhoto" accept="image/*" class="hidden" />
-        <label for="fridgePhoto" class="cursor-pointer">
-          <div class="border-4 border-dashed border-green-300 rounded-xl p-12 hover:border-green-500 transition">
-            <svg class="w-16 h-16 mx-auto text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-            <p class="text-xl font-semibold">Click to upload fridge photo</p>
-            <p class="text-sm text-gray-500 mt-1">Supports JPG, PNG</p>
-          </div>
-        </label>
-      </div>
+      <input type="file" id="fridgePhoto" accept="image/*" class="hidden" />
+      <label for="fridgePhoto" class="cursor-pointer block">
+        <div class="border-4 border-dashed border-green-300 rounded-xl p-12 hover:border-green-500 transition text-center">
+          <svg class="w-16 h-16 mx-auto text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <p class="text-xl font-semibold">Click to upload fridge photo</p>
+          <p class="text-sm text-gray-500 mt-1">JPG / PNG</p>
+        </div>
+      </label>
 
       <div id="preview" class="mt-6 hidden">
-        <img id="photoPreview" class="max-h-64 mx-auto rounded-lg shadow" />
+        <img id="photoPreview" class="max-h-64 mx-auto rounded-lg shadow" alt="Fridge preview"/>
       </div>
 
       <button id="analyzeBtn" class="mt-6 w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50" disabled>
@@ -52,24 +51,21 @@
       <h2 class="text-2xl font-bold text-center">Your AI Meal Plan</h2>
       <div id="meals" class="grid md:grid-cols-3 gap-6"></div>
 
-      <!-- Premium CTA -->
       <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl p-6 text-center">
-        <h3 class="text-xl font-bold">Unlock Unlimited Scans + Weekly Plans</h3>
-        <p class="mt-2">Only <strong>$9/month</strong> — cancel anytime</p>
+        <h3 class="text-xl font-bold">Unlimited Scans + Weekly Plans</h3>
+        <p class="mt-2"><strong>$9 / month</strong> – cancel anytime</p>
         <button id="upgradeBtn" class="mt-4 bg-white text-purple-600 px-6 py-2 rounded-full font-bold hover:bg-gray-100">
           Go Premium
         </button>
       </div>
     </div>
 
-    <!-- Footer -->
     <footer class="text-center text-sm text-gray-500 mt-12">
-      Built with <3 using <a href="https://x.ai" class="underline">Grok API</a> | 
+      Built with <a href="https://x.ai" class="underline">Grok API</a> |
       <a href="#" id="logout" class="underline hidden">Logout</a>
     </footer>
   </div>
 
-  <!-- Stripe -->
   <script src="https://js.stripe.com/v3/"></script>
   <script src="app.js"></script>
 </body>
