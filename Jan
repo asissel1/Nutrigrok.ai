@@ -1,7 +1,2 @@
-{
-  "name": "nutrigrok-ai",
-  "version": "1.0.0",
-  "dependencies": {
-    "stripe": "^15.0.0"
-  }
-}
+// vercel.json
+{ "functions": { "api/*.js": { "memory": 1024 } } }
