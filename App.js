@@ -1,150 +1,85 @@
-const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY'); // Replace after setup
+const stripe = Stripe('pk_test_...'); // ← your key
+const GROK_KEY = 'xai_...'; // ← your key (or use Vercel env)
 
-const fridgeInput = document.getElementById('fridgePhoto');
-const preview = document.getElementById('preview');
-const photoPreview = document.getElementById('photoPreview');
-const analyzeBtn = document.getElementById('analyzeBtn');
-const results = document.getElementById('results');
-const mealsContainer = document.getElementById('meals');
-const upgradeBtn = document.getElementById('upgradeBtn');
-const scanCountEl = document.getElementById('scanCount');
-const premiumBadge = document.getElementById('premium-badge');
-const logoutBtn = document.getElementById('logout');
+const $ = id => document.getElementById(id);
+let imgB64 = null;
 
-// Storage
-const STORAGE = {
-  isPremium: 'nutrigrok_premium',
-  scansLeft: 'nutrigrok_scans',
-  userMeals: 'nutrigrok_meals',
-  userEmail: 'nutrigrok_email'
-};
-const FREE_SCANS = 3;
-let currentPhoto = null;
-
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  updateUI();
-  fridgeInput.addEventListener('change', handlePhoto);
-  analyzeBtn.addEventListener('click', analyzePhoto);
-  upgradeBtn.addEventListener('click', goPremium);
-  logoutBtn.addEventListener('click', logout);
-
-  // Auto-upgrade after payment
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('premium') === 'success') {
-    localStorage.setItem(STORAGE.isPremium, 'true');
-    alert('Premium unlocked! Unlimited scans activated.');
-    window.history.replaceState({}, '', '/');
-  }
-});
-
-function handlePhoto(e) {
+$('photo').onchange = e => {
   const file = e.target.files[0];
-  if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
-    currentPhoto = ev.target.result;
-    photoPreview.src = currentPhoto;
-    preview.classList.remove('hidden');
-    analyzeBtn.disabled = false;
+  reader.onload = ev => {
+    imgB64 = ev.target.result;
+    $('img').src = imgB64;
+    $('preview').classList.remove('hidden');
+    $('go').disabled = false;
   };
   reader.readAsDataURL(file);
-}
+};
 
-async function analyzePhoto() {
-  if (!currentPhoto) return;
-  const scansLeft = getScansLeft();
-  if (!isPremium() && scansLeft <= 0) {
-    alert('Upgrade for unlimited scans!');
-    return;
-  }
-
-  analyzeBtn.disabled = true;
-  analyzeBtn.textContent = 'Analyzing...';
+$('go').onclick = async () => {
+  if (!imgB64) return;
+  $('go').textContent = 'Analyzing...';
+  $('go').disabled = true;
 
   try {
-    const response = await fetch('/api/create-checkout', {  // Mock for demo; real uses Grok API
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: currentPhoto })  // In real: Send to Grok API
-    });
-    const data = await response.json();
-    const meals = data.meals || mockMeals();  // Fallback to mock for testing
-
-    displayMeals(meals);
-    if (!isPremium()) decrementScan();
-    updateUI();
-  } catch (err) {
-    alert('Try again!');
+    const meals = await callGrok(imgB64);
+    render(meals);
+    $('result').classList.remove('hidden');
+  } catch (e) {
+    alert('Error – try again');
   } finally {
-    analyzeBtn.disabled = false;
-    analyzeBtn.textContent = 'Analyze with Grok AI';
+    $('go').textContent = 'Generate Meal Plan';
+    $('go').disabled = false;
   }
+};
+
+async function callGrok(b64) {
+  const res = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${GROK_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'grok-beta',
+      messages: [
+        { role: 'system', content: 'List 3 healthy meals using ONLY visible ingredients. Return JSON: {meals:[{name,ingredients,calories,steps}]}' },
+        { role: 'user', content: [{ type: 'image_url', image_url: { url: b64 } }] }
+      ],
+      response_format: { type: 'json_object' }
+    })
+  });
+  const data = await res.json();
+  return JSON.parse(data.choices[0].message.content).meals;
 }
 
-function mockMeals() {  // Remove in production
-  return [
-    { name: 'Avocado Toast', prepTime: '5 min', calories: 300, protein: 10, carbs: 40, fat: 15, ingredients: ['Bread', 'Avocado'], steps: ['Toast bread', 'Mash avocado'] }
-  ];
+function render(meals) {
+  const div = $('meals');
+  div.innerHTML = '';
+  const grocery = [];
+  meals.forEach(m => {
+    grocery.push(...m.ingredients);
+    div.innerHTML += `
+      <div class="bg-white p-5 rounded-xl shadow">
+        <h3 class="font-bold text-lg text-green-700">${m.name}</h3>
+        <p class="text-sm text-gray-600">${m.calories} cal</p>
+        <p class="mt-2"><strong>Ingredients:</strong> ${m.ingredients.join(', ')}</p>
+        <ol class="list-decimal ml-5 mt-2 text-sm">${m.steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+      </div>`;
+  });
+
+  $('pdf').onclick = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Grocery List', 20, 20);
+    doc.setFontSize(12);
+    [...new Set(grocery)].forEach((item, i) => doc.text(`• ${item}`, 20, 30 + i*8));
+    doc.save('grocery.pdf');
+  };
 }
 
-function displayMeals(meals) {
-  mealsContainer.innerHTML = meals.map(meal => `
-    <div class="meal-card bg-white rounded-lg shadow p-5 border">
-      <h3 class="font-bold text-lg text-green-700">${meal.name}</h3>
-      <p class="text-sm text-gray-600 mt-1">Prep: ${meal.prepTime}</p>
-      <div class="mt-3 text-xs">
-        <span class="font-medium">${meal.calories} cal</span> • P: ${meal.protein}g • C: ${meal.carbs}g • F: ${meal.fat}g
-      </div>
-      <details class="mt-3 text-sm">
-        <summary class="cursor-pointer font-medium text-green-600">Recipe</summary>
-        <p class="mt-2">${meal.ingredients.join(', ')}</p>
-        <ol class="list-decimal mt-1 space-y-1">
-          ${meal.steps.map(s => `<li>${s}</li>`).join('')}
-        </ol>
-      </details>
-      <button onclick="saveMeal('${meal.name}')" class="mt-3 text-xs text-green-600 underline">Save</button>
-    </div>
-  `).join('');
-  results.classList.remove('hidden');
-}
-
-function saveMeal(name) {
-  const saved = JSON.parse(localStorage.getItem(STORAGE.userMeals) || '[]');
-  if (!saved.includes(name)) saved.push(name);
-  localStorage.setItem(STORAGE.userMeals, JSON.stringify(saved));
-  alert('Saved!');
-}
-
-// Premium Logic
-function isPremium() { return localStorage.getItem(STORAGE.isPremium) === 'true'; }
-function getScansLeft() { return isPremium() ? Infinity : Math.max(0, FREE_SCANS - parseInt(localStorage.getItem(STORAGE.scansLeft) || '0')); }
-function decrementScan() { const used = parseInt(localStorage.getItem(STORAGE.scansLeft) || '0') + 1; localStorage.setItem(STORAGE.scansLeft, used); }
-function updateUI() {
-  const premium = isPremium();
-  const scans = getScansLeft();
-  premiumBadge.innerHTML = premium ? '<span class="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">PREMIUM</span>' : '';
-  scanCountEl.textContent = premium ? 'Unlimited scans' : `Scans left: ${scans}/${FREE_SCANS}`;
-  logoutBtn.classList.toggle('hidden', !premium);
-}
-
-async function goPremium() {
+$('premium').onclick = async () => {
   const email = prompt('Email for premium:');
   if (!email) return;
-  localStorage.setItem(STORAGE.userEmail, email);
-
-  const res = await fetch('/api/create-checkout', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-  const { sessionId } = await res.json();
-  stripe.redirectToCheckout({ sessionId });
-}
-
-function logout() {
-  localStorage.removeItem(STORAGE.isPremium);
-  localStorage.removeItem(STORAGE.userEmail);
-  updateUI();
-  alert('Back to free tier.');
-}
+  const res = await fetch('/api/checkout', { method: 'POST', body: JSON.stringify({ email }), headers: {'Content-Type':'application/json'} });
+  const { id } = await res.json();
+  stripe.redirectToCheckout({ sessionId: id });
+};
