@@ -1,5 +1,2 @@
-{
-  "functions": {
-    "api/*.js": { "memory": 1024 }
-  }
-}
+// package.json
+{ "dependencies": { "stripe": "^15.0.0" } }
